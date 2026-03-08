@@ -32,4 +32,10 @@ Total matched files: **1**
 
 ## First Recommended Target Bundle For Production
 
-No MIDI+audio co-located candidates were found. Recommended action: ingest one largest MIDI file and manually attach stems.
+No confident MIDI+stem bundle was found in the scanned roots.
+
+Recommended fallback target bundle: **Waghalter__DP_PREP_WAV_DENSE__MIXCT_AUTOMATION**
+
+- MIDI file: `/Users/symphonova/Downloads/mixct_mvp_a/Waghalter__DP_PREP_WAV_DENSE__MIXCT_AUTOMATION.mid`
+- Stem group: not discovered in scanned roots
+- Rationale: only discovered orchestral-control asset and therefore the highest-confidence first ingest target pending stem-location follow-up.
