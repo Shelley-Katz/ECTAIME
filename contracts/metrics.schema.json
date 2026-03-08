@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symphonova.local/contracts/metrics.schema.json",
+  "title": "ECT Metrics Schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "input_duration_sec",
+    "cc_stats",
+    "profile_stats",
+    "health",
+    "musical",
+    "gate_results"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "input_duration_sec": {
+      "type": "number",
+      "minimum": 0
+    },
+    "cc_stats": {
+      "type": "object",
+      "required": ["cc1", "cc11"],
+      "properties": {
+        "cc1": { "$ref": "#/$defs/ccSeriesStats" },
+        "cc11": { "$ref": "#/$defs/ccSeriesStats" },
+        "cc21": { "$ref": "#/$defs/ccSeriesStats" }
+      },
+      "additionalProperties": false
+    },
+    "profile_stats": {
+      "type": "object",
+      "required": ["long", "short", "rep"],
+      "properties": {
+        "long": { "$ref": "#/$defs/profileStats" },
+        "short": { "$ref": "#/$defs/profileStats" },
+        "rep": { "$ref": "#/$defs/profileStats" }
+      },
+      "additionalProperties": false
+    },
+    "health": {
+      "type": "object",
+      "required": ["dead_flat_segments", "jitter_index"],
+      "properties": {
+        "dead_flat_segments": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "jitter_index": {
+          "type": "object",
+          "required": ["long", "short", "rep"],
+          "properties": {
+            "long": { "type": "number", "minimum": 0 },
+            "short": { "type": "number", "minimum": 0 },
+            "rep": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "musical": {
+      "type": "object",
+      "required": [
+        "long_pumping_index",
+        "repeated_note_misses",
+        "transition_discontinuities_per_min"
+      ],
+      "properties": {
+        "long_pumping_index": {
+          "type": "number",
+          "minimum": 0
+        },
+        "repeated_note_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transition_discontinuities_per_min": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "gate_results": {
+      "type": "object",
+      "required": ["G1", "G2", "G3", "G4", "overall_pass"],
+      "properties": {
+        "G1": { "type": "boolean" },
+        "G2": { "type": "boolean" },
+        "G3": { "type": "boolean" },
+        "G4": { "type": "boolean" },
+        "overall_pass": { "type": "boolean" },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ccSeriesStats": {
+      "type": "object",
+      "required": [
+        "min",
+        "max",
+        "mean",
+        "median",
+        "p95",
+        "p99",
+        "pinning_ratio"
+      ],
+      "properties": {
+        "min": { "type": "number", "minimum": 0, "maximum": 127 },
+        "max": { "type": "number", "minimum": 0, "maximum": 127 },
+        "mean": { "type": "number", "minimum": 0, "maximum": 127 },
+        "median": { "type": "number", "minimum": 0, "maximum": 127 },
+        "p95": { "type": "number", "minimum": 0, "maximum": 127 },
+        "p99": { "type": "number", "minimum": 0, "maximum": 127 },
+        "pinning_ratio": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "profileStats": {
+      "type": "object",
+      "required": ["seconds", "ratio"],
+      "properties": {
+        "seconds": { "type": "number", "minimum": 0 },
+        "ratio": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}
+

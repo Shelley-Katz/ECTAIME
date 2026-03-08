@@ -1,0 +1,25 @@
+anchors:
+  - bar: 1
+    beat: 1.0
+    tick: 0
+    ltc_seconds: 3600.0
+  - bar: 11
+    beat: 1.0
+    tick: 0
+    ltc_seconds: 3625.0
+  - bar: 21
+    beat: 1.0
+    tick: 0
+    ltc_seconds: 3650.0
+  - bar: 31
+    beat: 1.0
+    tick: 0
+    ltc_seconds: 3675.0
+  - bar: 51
+    beat: 1.0
+    tick: 0
+    ltc_seconds: 3718.28
+  - bar: 78
+    beat: 1.0
+    tick: 0
+    ltc_seconds: 3785.8

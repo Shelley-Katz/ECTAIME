@@ -1,0 +1,181 @@
+version: "1.0"
+name: "MixCT Session Map Template"
+daw: "Digital Performer"
+
+defaults:
+  # Transition smoothing at section changes.
+  ramp_in_ms: 220
+  # CC point spacing during ramps.
+  control_step_ms: 40
+
+# Role offsets are relative to each bus default_db.
+role_db_offsets:
+  PRIMARY: 0.0
+  COUNTERPOINT: -3.0
+  SECONDARY: -6.0
+  ACCOMPANIMENT: -10.0
+
+# Optional alias map (free text -> bus id).
+entity_aliases:
+  first violins: STR_HI
+  second violins: STR_HI
+  violins: STR_HI
+  v1: STR_HI
+  v2: STR_HI
+  violas: STR_MID
+  viola: STR_MID
+  cellos: STR_LO
+  cello: STR_LO
+  double bass: STR_LO
+  double basses: STR_LO
+  db: STR_LO
+
+  high ww: WW_HI
+  high winds: WW_HI
+  woodwinds high: WW_HI
+  low ww: WW_LO
+  low winds: WW_LO
+  woodwinds low: WW_LO
+
+  horns: HN
+  four horns: HN
+  trumpets: TPT
+  low brass: BR_LO
+  brass low: BR_LO
+
+  timpani: PERC
+  percussion: PERC
+  harp: HARP
+
+buses:
+  - id: STR_HI
+    label: "High Strings"
+    cc: 90
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["high strings", "upper strings"]
+    include_track_patterns:
+      - "^Violin I$"
+      - "^Violin II$"
+
+  - id: STR_MID
+    label: "Mid Strings"
+    cc: 91
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["mid strings", "violas"]
+    include_track_patterns:
+      - "^Viola$"
+
+  - id: STR_LO
+    label: "Low Strings"
+    cc: 92
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["low strings", "cellos and basses"]
+    include_track_patterns:
+      - "^Violoncello$"
+      - "^Double bass$"
+
+  - id: WW_HI
+    label: "High Woodwinds"
+    cc: 93
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["high ww", "high winds", "upper woodwinds"]
+    include_track_patterns:
+      - "^Piccolo$"
+      - "^Flute 1$"
+      - "^Flute 2$"
+      - "^Oboe 1$"
+      - "^Oboe 2$"
+
+  - id: WW_LO
+    label: "Low Woodwinds"
+    cc: 94
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["low ww", "low winds", "lower woodwinds"]
+    include_track_patterns:
+      - "^English Horn$"
+      - "^Clarinet \\(A\\) 1$"
+      - "^Clarinet \\(A\\) 2$"
+      - "^Bass Clarinet \\(A\\)$"
+      - "^Bassoon 1$"
+      - "^Bassoon 2$"
+      - "^Contrabassoon$"
+
+  - id: HN
+    label: "Horns"
+    cc: 95
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["horns", "four horns"]
+    include_track_patterns:
+      - "^Horn \\(F\\) 1$"
+      - "^Horn \\(F\\) 2$"
+      - "^Horn \\(F\\) 3$"
+      - "^Horn \\(F\\) 4$"
+
+  - id: TPT
+    label: "Trumpets"
+    cc: 96
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["trumpets", "high brass"]
+    include_track_patterns:
+      - "^Trumpet \\(A\\) 1$"
+      - "^Trumpet \\(A\\) 2$"
+      - "^Trumpet \\(A\\) 3$"
+
+  - id: BR_LO
+    label: "Low Brass"
+    cc: 97
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["low brass", "trombones and tuba"]
+    include_track_patterns:
+      - "^Trombone 1$"
+      - "^Trombone 2$"
+      - "^Trombone 3$"
+      - "^Tuba$"
+
+  - id: PERC
+    label: "Percussion"
+    cc: 98
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["percussion", "timpani"]
+    include_track_patterns:
+      - "^Timpani$"
+      - "^Triangle$"
+      - "^Suspended Cymbal$"
+
+  - id: HARP
+    label: "Harp"
+    cc: 99
+    channel: 16
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["harp"]
+    include_track_patterns:
+      - "^Harp$"

@@ -1,0 +1,55 @@
+version: "1.0"
+
+project:
+  name: "ECT Core"
+  mode: "offline"
+
+input:
+  strip_existing_cc:
+    cc1: true
+    cc11: true
+    cc21: false
+
+profiles:
+  enabled:
+    - LONG
+    - SHORT
+    - REP
+  mode: "long_short_rep"
+
+mapping:
+  cc_long:
+    velxf: 1
+    expression: 11
+    attack: 21
+
+analysis:
+  ks_detection: "auto"
+  short_ms: 220.0
+  long_ms: 300.0
+  rep_ioi_ms: 260.0
+  merge_gap_ms: 18.0
+  switch_pre_roll_ms: 32.0
+
+refinement:
+  ks_lookahead_ms: 120.0
+  ks_lookbehind_ms: 90.0
+  ks_refine_boundary_ms: 160.0
+  texture_confirm_long: 3
+  texture_confirm_short: 3
+  texture_long_min_ms: 300.0
+  texture_short_max_ms: 220.0
+  texture_legato_gap_max_ms: 18.0
+  texture_legato_min_note_ms: 120.0
+  texture_short_gap_min_ms: 24.0
+  texture_fast_long_ms: 430.0
+  texture_fast_long_window_notes: 5
+  texture_fast_long_max_gap_ms: 20.0
+
+variants:
+  enabled: true
+  fallback_full_score_bias:
+    - LONG
+    - SHORT
+    - REP
+

@@ -1,0 +1,13 @@
+markers:
+  - name: Intro
+    bar: 1
+    beat: 1.0
+    tick: 0
+  - name: ThemeA
+    bar: 26
+    beat: 1.0
+    tick: 0
+  - name: Bridge
+    bar: 58
+    beat: 3.5
+    tick: 0

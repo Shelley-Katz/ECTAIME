@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://symphonova.local/contracts/run-manifest.schema.json",
+  "title": "ECT Run Manifest Schema",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "timestamp_utc",
+    "tool",
+    "inputs",
+    "config",
+    "outputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "timestamp_utc": {
+      "type": "string"
+    },
+    "tool": {
+      "type": "object",
+      "required": ["name", "version", "git_commit"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "git_commit": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "inputs": {
+      "type": "object",
+      "required": ["source_midi", "source_audio"],
+      "properties": {
+        "source_midi": { "$ref": "#/$defs/fileHash" },
+        "source_audio": { "$ref": "#/$defs/fileHash" },
+        "articulations": { "$ref": "#/$defs/fileHash" },
+        "score_context": { "$ref": "#/$defs/fileHash" }
+      },
+      "additionalProperties": false
+    },
+    "config": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string" },
+        "sha256": { "type": "string" },
+        "effective_params": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "selection": {
+      "type": "object",
+      "required": ["region_start_tick", "region_end_tick", "bias_profile"],
+      "properties": {
+        "region_start_tick": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "region_end_tick": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "bias_profile": {
+          "type": ["string", "null"],
+          "enum": ["LONG", "SHORT", "REP", null]
+        }
+      },
+      "additionalProperties": false
+    },
+    "outputs": {
+      "type": "object",
+      "required": ["control_stream", "profile_timeline", "note_audit", "metrics"],
+      "properties": {
+        "control_stream": { "$ref": "#/$defs/fileHash" },
+        "profile_timeline": { "$ref": "#/$defs/fileHash" },
+        "note_audit": { "$ref": "#/$defs/fileHash" },
+        "metrics": { "$ref": "#/$defs/fileHash" },
+        "variants": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/fileHash" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "fileHash": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string" },
+        "sha256": { "type": "string" },
+        "bytes": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

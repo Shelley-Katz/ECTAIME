@@ -1,0 +1,9 @@
+[package]
+name = "mixct_intent"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+regex = { workspace = true }
+serde = { workspace = true }
+mixct_core = { path = "../mixct_core" }

@@ -1,0 +1,5 @@
+start_sec,end_sec,start_tick,end_tick,profile,source,reason
+0.0000,0.1050,0,50,SHORT,articulation,"ks_latch=[22,24,38]"
+0.1200,0.2250,58,108,SHORT,articulation,"ks_latch=[22,24,38]"
+0.2400,0.7200,115,345,LONG,articulation_texture,"ks_latch=[22,24,38]; texture_latch=LONG; dur=461.5ms >= 300.0ms"
+

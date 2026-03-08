@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+
+# DAW/session artifacts
+*.tmp
+*.bak
+*.swp
+
+# Python helper environments
+.venv/
+__pycache__/
+*.pyc
+
+# Render outputs (keep folder, ignore contents)
+renders/*
+!renders/.gitkeep
+
+# Large local production data (do not sync by default)
+score_conversion_drop/
+dorico_exports/
+qc_notes/
+studio_drop/
+mixct_rust/target/
+
+# Local forensic/test project dumps
+DP Articulation Map resources/
+DP Articulation Maps/
+DP Articulation Maps Forensics Input/
+DP Articulation Maps Project A + B/
+DP Articulation Maps Project C Import-Only/
+DP Articulation Maps Project C Randomized/
+DP Articulation Maps Project C Track-Only/
+
+# Audio/MIDI/session exports
+*.wav
+*.aif
+*.aiff
+*.flac
+*.mp3
+*.m4a
+*.mid
+*.dpdoc

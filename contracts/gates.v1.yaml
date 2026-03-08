@@ -1,0 +1,32 @@
+version: "1.0"
+description: "Objective QC gate thresholds for ECT Core outputs."
+
+gates:
+  G1_technical_integrity:
+    run_completed: true
+    required_artifacts:
+      - control_stream.mid
+      - profile_timeline.csv
+      - note_audit.csv
+      - metrics.json
+      - run_manifest.json
+    manifest_hashes_valid: true
+
+  G2_controller_health:
+    cc_pinning_ratio_max:
+      cc1: 0.35
+      cc11: 0.35
+    dead_flat_segments_max: 12
+    jitter_index_max:
+      long: 0.22
+      short: 0.30
+      rep: 0.32
+
+  G3_musical_utility:
+    long_pumping_index_max: 0.35
+    repeated_note_misses_max: 0
+    transition_discontinuities_per_min_max: 40.0
+
+  G4_reproducibility:
+    same_input_config_code_equivalent_output: true
+    variant_output_stability: true

@@ -1,0 +1,30 @@
+[package]
+name = "mixct_app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_yaml = { workspace = true }
+clap = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+mixct_core = { path = "../mixct_core" }
+mixct_sync = { path = "../mixct_sync" }
+mixct_audio = { path = "../mixct_audio" }
+mixct_control = { path = "../mixct_control" }
+mixct_intent = { path = "../mixct_intent" }
+mixct_restore = { path = "../mixct_restore" }
+mixct_audit = { path = "../mixct_audit" }
+speech_apple_bridge = { path = "../speech_apple_bridge" }
+voice_tts_apple_bridge = { path = "../voice_tts_apple_bridge" }
+speech_fallback_local = { path = "../speech_fallback_local" }
+midir = "0.10"
+cpal = "0.16"
+ltc = "0.2"
+midly = "0.5"

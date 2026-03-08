@@ -1,0 +1,992 @@
+{
+  "document": {
+    "name": "MixCT MVP-B Codex Spec",
+    "format": "json",
+    "schema_version": "1.1.0",
+    "status": "working_master_spec",
+    "date": "2026-03-07",
+    "purpose": "Machine-friendly implementation spec for Codex and other coding agents.",
+    "implementation_language": "rust",
+    "human_interface_mode": "cli_daemon_plus_spoken_feedback",
+    "notes": [
+      "Prefer explicit validation over inference.",
+      "Reject ambiguity rather than guessing.",
+      "Do not patch Digital Performer project files directly."
+    ]
+  },
+  "product": {
+    "name": "MixCT",
+    "mvp": "MVP-B",
+    "goal": "Enable safe, voice-guided, bounded automation passes into Digital Performer while DP remains the source of truth.",
+    "operator": "Shelley",
+    "success_definition": [
+      "Operator listens in room and speaks a bounded musical instruction.",
+      "System resolves target and time range.",
+      "System generates a safe pass plan.",
+      "System executes a real automation pass in DP.",
+      "System logs the full action deterministically.",
+      "System can restore the exact pre-pass state on demand."
+    ]
+  },
+  "principles": {
+    "dp_is_source_of_truth": true,
+    "real_dp_automation_passes_only": true,
+    "no_dp_file_patching": true,
+    "separate_audio_and_control_planes": true,
+    "explicit_time_authority_required": true,
+    "natural_language_execution_must_be_guarded": true,
+    "ambiguity_never_executes": true,
+    "no_legacy_apple_speech_apis": true,
+    "no_gui_required_in_mvp_b": true,
+    "undo_authority_is_dp_undo": true,
+    "manual_dp_undo_disallowed_during_mixct_session": true,
+    "third_party_stt_allowed_as_feature_flagged_local_fallback": true
+  },
+  "architecture": {
+    "status": "locked",
+    "topology": {
+      "studio_mac": {
+        "role": "runs_dp_and_vep_only",
+        "local_interface": "motu_848",
+        "connections": [
+          {
+            "to": "motu_848",
+            "transport": "usb_or_thunderbolt"
+          },
+          {
+            "to": "processing_laptop",
+            "transport": "wired_ethernet_for_network_midi_only"
+          }
+        ]
+      },
+      "processing_laptop": {
+        "role": "runs_mixct_services_only",
+        "local_interface": "motu_lp32",
+        "connections": [
+          {
+            "to": "motu_lp32",
+            "transport": "usb"
+          },
+          {
+            "to": "studio_mac",
+            "transport": "wired_ethernet_for_network_midi_only"
+          }
+        ]
+      },
+      "avb_network": {
+        "switch": "motu_avb_switch",
+        "devices": [
+          {
+            "device": "motu_848",
+            "transport": "avb_ethernet"
+          },
+          {
+            "device": "motu_lp32",
+            "transport": "avb_ethernet"
+          }
+        ],
+        "purpose": "analysis_audio_only",
+        "clocking": {
+          "authority": "avb_ptp",
+          "grandmaster_device": "motu_848",
+          "all_devices_must_lock_to_grandmaster": true
+        }
+      }
+    },
+    "plane_split": {
+      "audio_plane": {
+        "transport": "motu_avb",
+        "purpose": "multichannel_analysis_audio_from_studio_to_processing",
+        "exclusions": [
+          "control_messages",
+          "voice",
+          "tts"
+        ],
+        "clock_authority": "avb_ptp_grandmaster_motu_848"
+      },
+      "control_plane": {
+        "transport": "apple_network_midi",
+        "purpose": "cross_mac_control_only",
+        "protocols": {
+          "mcu": "transport_fader_write_state_and_write_pass_operations",
+          "midi_cc": "eq_macro_lanes_and_other_bounded_macro_controls"
+        }
+      },
+      "voice_plane": {
+        "mode": "push_to_talk_half_duplex_local_only",
+        "host": "processing_laptop"
+      },
+      "audit_plane": {
+        "mode": "append_only_plus_snapshot_backups",
+        "host": "processing_laptop"
+      }
+    },
+    "performance_critical_exclusions": [
+      "wifi",
+      "bluetooth"
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      "one_bus_volume_write_vertical_slice",
+      "spoken_command_understanding_for_constrained_musical_instructions",
+      "suggest_only_mode",
+      "clarification_mode",
+      "one_eq_macro_vertical_slice",
+      "safe_execution",
+      "exact_restoration_from_snapshot",
+      "deterministic_logs",
+      "three_successful_end_to_end_runs_on_real_material"
+    ],
+    "out_of_scope": [
+      "full_duplex_conversation",
+      "wake_word",
+      "continuous_ambient_listening",
+      "automatic_replay",
+      "dp_file_patching",
+      "plugin_parameter_scraping_from_dp_internals",
+      "legacy_apple_speech_apis",
+      "gui"
+    ]
+  },
+  "components": [
+    {
+      "name": "mixct_core",
+      "language": "rust",
+      "responsibilities": [
+        "domain_types",
+        "tempo_and_time_conversion",
+        "target_resolution",
+        "validation",
+        "safety_policy_engine",
+        "risk_scoring",
+        "state_machine_definitions"
+      ]
+    },
+    {
+      "name": "mixct_sync",
+      "language": "rust",
+      "responsibilities": [
+        "timeline_authority_management",
+        "startup_offset_calibration",
+        "drift_monitoring",
+        "sync_confidence_scoring",
+        "execution_refusal_when_timing_uncertain"
+      ]
+    },
+    {
+      "name": "mixct_audio",
+      "language": "rust",
+      "responsibilities": [
+        "lp32_audio_capture",
+        "multichannel_analysis_input_management",
+        "audio_feature_extraction",
+        "segment_extraction_for_future_recommendation_logic"
+      ]
+    },
+    {
+      "name": "mixct_control",
+      "language": "rust",
+      "responsibilities": [
+        "apple_network_midi_connection_management",
+        "mcu_scheduler",
+        "midi_cc_scheduler",
+        "dp_write_pass_execution",
+        "strip_bank_verification",
+        "transport_state_checks",
+        "fail_safe_stop"
+      ]
+    },
+    {
+      "name": "mixct_intent",
+      "language": "rust",
+      "responsibilities": [
+        "utterance_normalization",
+        "guarded_natural_language_parsing",
+        "ambiguity_detection",
+        "decision_routing_execute_clarify_suggest_reject"
+      ]
+    },
+    {
+      "name": "mixct_restore",
+      "language": "rust",
+      "responsibilities": [
+        "exact_pre_pass_lane_snapshot_capture",
+        "restoration_plan_generation",
+        "restoration_pass_execution",
+        "restoration_audit_linkage"
+      ]
+    },
+    {
+      "name": "mixct_audit",
+      "language": "rust",
+      "responsibilities": [
+        "append_only_jsonl_logs",
+        "run_id_generation",
+        "snapshot_hashing",
+        "command_plan_and_result_logging",
+        "restoration_metadata"
+      ]
+    },
+    {
+      "name": "mixct_app",
+      "language": "rust",
+      "responsibilities": [
+        "daemon_orchestrator",
+        "cli_entrypoints",
+        "startup_health_checks",
+        "service_lifecycle_management",
+        "pass_planning",
+        "execution_orchestration",
+        "spoken_summary_coordination"
+      ]
+    },
+    {
+      "name": "speech_apple",
+      "language": "swift_or_objc_sidecar",
+      "responsibilities": [
+        "push_to_talk_audio_ingestion",
+        "speech_detector_gating",
+        "speech_analyzer_pipeline_management",
+        "speech_transcriber_on_device_transcription",
+        "asset_verification_at_startup"
+      ],
+      "required_apis": [
+        "SpeechDetector",
+        "SpeechAnalyzer",
+        "SpeechTranscriber"
+      ],
+      "forbidden_apis": [
+        "SFSpeechRecognizer",
+        "legacy_request_task_flows",
+        "cloud_stt",
+        "third_party_stt"
+      ]
+    },
+    {
+      "name": "speech_fallback_local",
+      "language": "rust_or_python_sidecar",
+      "responsibilities": [
+        "local_fallback_transcription_only_when_primary_low_confidence",
+        "no_background_transcription",
+        "return_confidence_and_transcript"
+      ],
+      "allowed_engines": [
+        "mlx_whisper_local_only"
+      ]
+    },
+    {
+      "name": "voice_tts_apple",
+      "language": "swift_or_objc_sidecar",
+      "responsibilities": [
+        "spoken_confirmations",
+        "clarification_prompts",
+        "suggestion_playback",
+        "completion_summaries"
+      ]
+    }
+  ],
+  "data_contracts": {
+    "session_map_yaml": {
+      "purpose": "session_binding_and_routing_contract",
+      "required_fields": [
+        "session_name",
+        "session_hash",
+        "dp_project_name",
+        "sample_rate",
+        "bus_map",
+        "aliases",
+        "mcu_strip_map",
+        "cc_macro_map",
+        "lane_map",
+        "bus_groups",
+        "safety_bounds",
+        "default_operations",
+        "tts_output_policy",
+        "control_network_config",
+        "analysis_input_map"
+      ],
+      "per_bus_required_fields": [
+        "canonical_name",
+        "aliases",
+        "mcu_strip_index",
+        "bank_index",
+        "volume_lane_target",
+        "eq_macro_lane_targets",
+        "max_per_pass_move",
+        "max_slew",
+        "allowed_operation_classes"
+      ]
+    },
+    "timeline_snapshot_json": {
+      "purpose": "read_only_timeline_reference_imported_from_dp_context",
+      "required_fields": [
+        "timeline_hash",
+        "tempo_events",
+        "meter_events",
+        "start_time_reference",
+        "bar_1_wallclock_hint",
+        "project_sample_rate",
+        "markers",
+        "exported_at"
+      ]
+    },
+    "utterance_json": {
+      "purpose": "trace_of_voice_input_before_intent_resolution",
+      "required_fields": [
+        "utterance_id",
+        "captured_at",
+        "backend",
+        "ptt_start",
+        "ptt_end",
+        "transcript",
+        "raw_confidence",
+        "normalized_text",
+        "normalization_steps",
+        "speech_detected",
+        "language"
+      ]
+    },
+    "intent_json": {
+      "purpose": "guarded_command_representation",
+      "required_fields": [
+        "intent_id",
+        "source_utterance_id",
+        "source_text",
+        "normalized_text",
+        "decision",
+        "operation",
+        "operation_class",
+        "targets",
+        "resolved_targets",
+        "time_range",
+        "mode",
+        "strength",
+        "confidence",
+        "risk_score",
+        "requires_confirmation",
+        "ambiguities",
+        "reason_codes",
+        "idempotency_key"
+      ],
+      "decision_enum": [
+        "execute",
+        "clarify",
+        "suggest",
+        "reject"
+      ]
+    },
+    "pass_plan_json": {
+      "purpose": "exact_execution_plan",
+      "required_fields": [
+        "plan_id",
+        "source_intent_id",
+        "timeline_hash",
+        "session_hash",
+        "operation_class",
+        "target_lanes",
+        "target_strips",
+        "curve_shape",
+        "curve_points",
+        "pre_roll",
+        "post_roll",
+        "boundary_smoothing_ms",
+        "control_rate_hz",
+        "clamps",
+        "slew_caps",
+        "expected_transport_state",
+        "sync_confidence_required",
+        "undo_anchor_ref",
+        "execution_window",
+        "dry_run_summary"
+      ]
+    },
+    "lane_snapshot_json": {
+      "purpose": "exact_pre_pass_state_required_for_real_restoration",
+      "required_fields": [
+        "snapshot_id",
+        "captured_at",
+        "session_hash",
+        "timeline_hash",
+        "lane_targets",
+        "range_start",
+        "range_end",
+        "sampled_points",
+        "capture_method",
+        "hash"
+      ]
+    },
+    "pass_audit_jsonl": {
+      "purpose": "append_only_audit_log",
+      "required_fields": [
+        "run_id",
+        "command_id",
+        "utterance_id",
+        "intent_id",
+        "plan_id",
+        "sync_offsets",
+        "execution_timestamps",
+        "applied_clamps",
+        "actual_transport_state",
+        "success_failure_status",
+        "undo_anchor_ref",
+        "undo_result",
+        "spoken_summary_text"
+      ]
+    }
+  },
+  "time_authority": {
+    "principle": "MixCT must never assume DP timeline, heard audio, and control scheduler time are naturally aligned.",
+    "authorities": {
+      "musical_authority": "dp_timeline",
+      "imported_reference": "timeline_snapshot_json",
+      "mapping_service": "mixct_sync",
+      "audio_sample_clock_authority": "avb_ptp_grandmaster_motu_848"
+    },
+    "mixct_sync_responsibilities": [
+      "startup_calibration_of_avb_audio_arrival_offset",
+      "drift_monitoring_during_runtime",
+      "revalidation_at_transport_start",
+      "confidence_scoring_before_every_pass",
+      "execution_refusal_when_confidence_below_threshold"
+    ],
+    "recalibration_required_after": [
+      "audio_route_change",
+      "sample_rate_change",
+      "dropped_avb_stream",
+      "control_reconnect",
+      "long_transport_interruption"
+    ],
+    "mandatory_execution_preconditions": [
+      "session_hash_matches",
+      "timeline_hash_matches",
+      "sync_confidence_above_threshold",
+      "transport_state_matches_plan_assumptions",
+      "avb_clock_lock_valid"
+    ],
+    "timeline_snapshot_lifecycle": {
+      "source": "studio_mac_dp_export",
+      "refresh_policy": "on_session_load_or_tempo_map_change",
+      "invalidates_on": [
+        "tempo_map_change",
+        "meter_map_change",
+        "timeline_export_refresh",
+        "session_hash_change"
+      ]
+    }
+  },
+  "command_model": {
+    "supported_command_families": [
+      {
+        "type": "direct_write",
+        "example": "Violins are too soft in bars 26-29."
+      },
+      {
+        "type": "suggest_first",
+        "example": "What do you suggest for bars 26-29?"
+      },
+      {
+        "type": "set_range",
+        "example": "Bring the upper strings up slightly in bars 40-44."
+      },
+      {
+        "type": "macro_eq",
+        "example": "Add a little more presence to the violins in bars 26-29."
+      },
+      {
+        "type": "replay_or_restore",
+        "example": "Restore the previous violin pass."
+      }
+    ],
+    "decision_enum": [
+      "execute",
+      "clarify",
+      "suggest",
+      "reject"
+    ],
+    "clarification_triggers": [
+      "ambiguous_target",
+      "ambiguous_time_window",
+      "missing_operation",
+      "confidence_too_low",
+      "conflicting_qualifiers",
+      "risk_too_high_for_silent_execution"
+    ],
+    "risk_scoring_factors": [
+      "number_of_targets",
+      "size_of_time_range",
+      "strength_of_move",
+      "whether_existing_automation_must_be_preserved",
+      "confidence_level",
+      "sync_certainty_margin"
+    ],
+    "confirmation_policy": {
+      "low_risk_single_target_bounded_range": "may_auto_execute",
+      "medium_risk": "requires_spoken_confirmation",
+      "high_risk_or_unclear": "clarify_or_reject",
+      "suggest_mode": "never_writes_without_explicit_confirmation"
+    }
+  },
+  "operation_classes": {
+    "required_internal_model": [
+      {
+        "name": "WRITE_NEW_CURVE",
+        "description": "Create a fresh arc or bounded gesture when preservation of existing shape is not required."
+      },
+      {
+        "name": "SET_FLAT_RANGE",
+        "description": "Hold a level across a defined region."
+      },
+      {
+        "name": "TRIM_EXISTING_RANGE",
+        "description": "Preserve phrasing shape while shifting level within a defined window."
+      }
+    ],
+    "mvp_b_exposure_order": [
+      {
+        "phase": 2,
+        "operation_class": "WRITE_NEW_CURVE"
+      },
+      {
+        "phase": 5,
+        "operation_class": "SET_FLAT_RANGE"
+      },
+      {
+        "phase": 6,
+        "operation_class": "TRIM_EXISTING_RANGE"
+      }
+    ]
+  },
+  "write_engine": {
+    "automation_mode": "Touch",
+    "planning_model_supports_range_aware_semantics": true,
+    "defaults": {
+      "pre_roll": "1_bar",
+      "post_roll": "1_beat",
+      "control_rate_hz": 50,
+      "boundary_smoothing_ms": 80,
+      "curve_shape": "cubic_ease_in_out"
+    },
+    "safety_bounds": {
+      "volume_clamp_db_per_pass": {
+        "min": -6.0,
+        "max": 6.0
+      },
+      "volume_slew_cap_db_per_beat": 3.0,
+      "eq_gain_clamp_db_per_pass": {
+        "min": -4.0,
+        "max": 4.0
+      },
+      "eq_frequency_movement": "deferred_until_gain_only_eq_macro_stability_is_proven"
+    },
+    "audible_behavior": {
+      "pass_is_heard_live": true,
+      "spoken_completion_only_after_pass_completion": true,
+      "tts_must_be_routed_away_from_analysis_feed": true
+    },
+    "mandatory_preconditions": [
+      "control_path_live",
+      "sync_confidence_valid",
+      "correct_strip_bank_verified",
+      "target_lanes_verified",
+      "dp_transport_state_verified",
+      "undo_anchor_captured",
+      "pass_plan_validated"
+    ],
+    "end_of_pass_behavior": [
+      "return_all_affected_lanes_to_read",
+      "verify_execution",
+      "speak_summary",
+      "commit_audit_log"
+    ]
+  },
+  "restoration_model": {
+    "principle": "Undo means executing DP Undo from a MixCT-managed undo anchor; snapshot restoration is deferred.",
+    "mandatory_before_every_write": [
+      "capture_dp_undo_anchor",
+      "store_anchor_in_audit_log",
+      "link_anchor_to_pass_plan"
+    ],
+    "restore_command_behavior": [
+      "resolve_relevant_dp_undo_anchor",
+      "execute_dp_undo_via_control_plane",
+      "verify_target_lanes_reverted",
+      "log_restore_as_first_class_action"
+    ],
+    "failure_fallback": [
+      "speak_plain_failure_status",
+      "halt_further_writes",
+      "preserve_audit_trail",
+      "leave_immediate_manual_dp_undo_available"
+    ],
+    "undo_execution_path": {
+      "primary": "mcu_undo_command",
+      "fallback": "studio_local_agent_undo_trigger",
+      "verification": "post_undo_lane_state_check"
+    }
+  },
+  "voice_system": {
+    "mode": {
+      "push_to_talk_only": true,
+      "half_duplex": true,
+      "wake_word": false,
+      "always_on_microphone": false,
+      "background_transcription_outside_ptt": false
+    },
+    "speech_backend": {
+      "status": "locked",
+      "policy": "latest_apple_speech_primary_with_feature_flagged_local_fallback",
+      "required_apis": [
+        "SpeechDetector",
+        "SpeechAnalyzer",
+        "SpeechTranscriber"
+      ],
+      "forbidden_apis": [
+        "SFSpeechRecognizer",
+        "legacy_apple_speech_request_task_flows",
+        "cloud_stt"
+      ],
+      "low_confidence_policy": {
+        "retry_with_second_engine": true,
+        "guess_missing_fields": false,
+        "write_on_low_confidence": false,
+        "required_action": "retry_local_fallback_then_clarify_or_reject"
+      },
+      "fallback_engine": {
+        "enabled_by_feature_flag": true,
+        "feature_flag": "stt.local_fallback.enabled",
+        "allowed_engines": [
+          "mlx_whisper_local_only"
+        ],
+        "cloud_fallback_forbidden": true
+      }
+    },
+    "normalization": {
+      "purpose": "deterministic post_transcription normalization for orchestral vocabulary",
+      "steps": [
+        "alias_folding",
+        "bus_name_normalization",
+        "section_synonym_mapping",
+        "bar_range_normalization",
+        "strength_mapping"
+      ]
+    },
+    "spoken_response_types": [
+      "clarification_prompt",
+      "suggestion_summary",
+      "execution_summary",
+      "refusal_reason"
+    ]
+  },
+  "startup_diagnostics": {
+    "startup_checks": [
+      "avb_audio_path_present",
+      "lp32_inputs_present",
+      "network_midi_session_present",
+      "mcu_endpoint_present",
+      "cc_endpoint_present",
+      "speech_assets_installed",
+      "session_map_loaded",
+      "timeline_snapshot_loaded",
+      "session_hash_valid",
+      "timeline_hash_valid",
+      "tts_output_route_isolated",
+      "logging_path_writable",
+      "avb_ptp_clock_locked",
+      "avb_clock_domain_consistent"
+    ],
+    "pre_pass_checks": [
+      "sync_valid",
+      "transport_state_valid",
+      "strip_bank_valid",
+      "target_strip_resolved",
+      "target_lane_resolved",
+      "clamps_computed",
+      "undo_anchor_captured",
+      "stale_command_check_passed",
+      "idempotency_check_passed",
+      "undo_path_available"
+    ],
+    "hard_refusal_cases": [
+      "sync_invalid",
+      "ambiguous_command",
+      "stale_command_context",
+      "bank_mismatch",
+      "missing_lane_mapping",
+      "route_disconnect",
+      "duplicate_command_id",
+      "restoration_snapshot_failure",
+      "undo_anchor_failure",
+      "undo_path_unavailable"
+    ]
+  },
+  "runtime_state_machine": {
+    "states": [
+      "BOOT",
+      "DIAGNOSTICS",
+      "READY",
+      "LISTENING",
+      "TRANSCRIBING",
+      "NORMALIZING",
+      "PARSING",
+      "CLARIFYING",
+      "SUGGESTING",
+      "PLANNING",
+      "PREPASS_SNAPSHOT",
+      "EXECUTING",
+      "VERIFYING",
+      "SUMMARIZING",
+      "RESTORING",
+      "SAFE_STOP",
+      "ERROR"
+    ],
+    "rules": [
+      "No direct transition from TRANSCRIBING to EXECUTING.",
+      "All writes must pass through PLANNING and PREPASS_SNAPSHOT.",
+      "SAFE_STOP must leave no lane in write mode."
+    ]
+  },
+  "eq_macro_strategy": {
+    "mvp_b_scope": {
+      "plugin": "dp_native_eq",
+      "macro_lanes": [
+        "LOW_GAIN",
+        "PRESENCE_GAIN",
+        "AIR_GAIN"
+      ]
+    },
+    "justification": [
+      "gain_only_macro_control_is_clearer",
+      "gain_only_macro_control_is_safer",
+      "gain_only_macro_control_is_easier_to_describe_verbally"
+    ],
+    "deferred": [
+      "free_frequency_control",
+      "q_control",
+      "arbitrary_plugin_parameter_access"
+    ]
+  },
+  "implementation_phases": [
+    {
+      "phase": 0,
+      "name": "workspace_and_contracts",
+      "deliverables": [
+        "create_rust_workspace",
+        "define_schemas_and_validators",
+        "add_run_ids_and_logging",
+        "add_strict_config_loading",
+        "add_state_machine_skeleton"
+      ]
+    },
+    {
+      "phase": 1,
+      "name": "time_authority_and_diagnostics",
+      "deliverables": [
+        "implement_mixct_sync",
+        "implement_timeline_snapshot_json",
+        "build_startup_diagnostics",
+        "refuse_operation_when_timing_certainty_cannot_be_established"
+      ]
+    },
+    {
+      "phase": 2,
+      "name": "control_vertical_slice",
+      "deliverables": [
+        "implement_network_midi_connection_handling",
+        "implement_mcu_scheduler",
+        "implement_one_bus_STR_HI_volume_WRITE_NEW_CURVE",
+        "capture_dp_undo_anchor",
+        "return_lane_to_Read"
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "voice_vertical_slice_apple_latest_only",
+      "deliverables": [
+        "implement_push_to_talk",
+        "implement_speech_apple_sidecar_using_SpeechDetector_SpeechAnalyzer_SpeechTranscriber",
+        "implement_transcript_normalization",
+        "implement_direct_actionable_command_path"
+      ]
+    },
+    {
+      "phase": 4,
+      "name": "clarify_suggest_refuse_behavior",
+      "deliverables": [
+        "implement_guarded_intent_parser",
+        "implement_risk_scoring",
+        "implement_clarification_prompts",
+        "implement_suggestion_only_mode",
+        "ensure_no_write_occurs_from_unclear_language"
+      ]
+    },
+    {
+      "phase": 5,
+      "name": "eq_macro_vertical_slice",
+      "deliverables": [
+        "implement_midi_cc_scheduling_for_LOW_GAIN_PRESENCE_GAIN_AIR_GAIN",
+        "add_gain_clamps",
+        "add_audit_logging_for_eq_macro_writes",
+        "expose_SET_FLAT_RANGE_where_required"
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "scale_session_map",
+      "deliverables": [
+        "extend_from_STR_HI_to_full_waghalter_section_bus_map",
+        "add_aliases_and_grouped_vocabulary",
+        "add_bank_verification_across_multiple_strips",
+        "expose_TRIM_EXISTING_RANGE_in_internal_and_control_models"
+      ]
+    },
+    {
+      "phase": 7,
+      "name": "hardening_and_recovery",
+      "deliverables": [
+        "reconnect_logic",
+        "stale_command_rejection",
+        "duplicate_command_rejection",
+        "safe_stop_behavior",
+        "restoration_pass_robustness",
+        "long_run_drift_resilience",
+        "dp_undo_restore_reliability_and_context_guarding"
+      ]
+    }
+  ],
+  "test_plan": {
+    "unit_tests": [
+      "bar_beat_to_time_conversion",
+      "meter_change_handling",
+      "alias_resolution",
+      "strength_mapping",
+      "ambiguity_routing",
+      "risk_scoring",
+      "curve_generation",
+      "clamp_enforcement",
+      "restoration_snapshot_integrity",
+      "idempotency"
+    ],
+    "integration_tests": [
+      "avb_analysis_input_acquisition",
+      "network_midi_session_discovery_and_reconnect",
+      "mcu_strip_and_bank_verification",
+      "one_pass_STR_HI_volume_write",
+      "one_pass_eq_macro_write",
+      "apple_speech_path_from_ptt_to_transcript",
+      "tts_isolation_from_analysis_path"
+    ],
+    "behavior_tests": [
+      "actionable_command_executes",
+      "vague_command_clarifies",
+      "advisory_command_suggests",
+      "high_risk_command_requires_confirmation",
+      "rejected_command_performs_no_write"
+    ],
+    "safety_tests": [
+      "no_writes_outside_commanded_window",
+      "all_over_limit_moves_are_clamped_and_logged",
+      "transport_stop_during_pass_forces_safe_stop",
+      "dropped_control_session_aborts_pass",
+      "dropped_avb_stream_blocks_execution",
+      "stale_command_cannot_execute",
+      "duplicate_command_cannot_execute",
+      "wrong_strip_bank_blocks_execution"
+    ],
+    "long_run_tests": [
+      "thirty_minute_drift_accumulation_check",
+      "repeated_passes_without_bank_drift",
+      "repeated_speech_commands_without_duplicate_execution",
+      "repeated_restore_cycles_without_corruption"
+    ]
+  },
+  "acceptance_scenarios": [
+    {
+      "id": "scenario_1",
+      "input": "Violins are too soft in bars 26-29.",
+      "expected": [
+        "target_resolves",
+        "time_resolves",
+        "safe_write_executes",
+        "completion_summary_spoken",
+        "snapshot_stored"
+      ]
+    },
+    {
+      "id": "scenario_2",
+      "input": "What do you suggest for bars 26-29?",
+      "expected": [
+        "no_write_occurs",
+        "system_returns_one_to_three_options",
+        "system_waits_for_explicit_confirmation"
+      ]
+    },
+    {
+      "id": "scenario_3",
+      "input": "Restore the previous violin pass.",
+      "expected": [
+        "dp_undo_anchor_resolves",
+        "dp_undo_executes",
+        "restoration_is_logged",
+        "spoken_confirmation_follows"
+      ]
+    },
+    {
+      "id": "scenario_4",
+      "input": "Bring them up a bit there.",
+      "expected": [
+        "no_write_occurs",
+        "system_requests_section_and_bar_clarification"
+      ]
+    }
+  ],
+  "done_gate": {
+    "all_required": true,
+    "criteria": [
+      "three_consecutive_successful_end_to_end_runs_on_real_project_material",
+      "deterministic_logs_for_each_run",
+      "dp_undo_anchors_captured",
+      "successful_restoration_on_demand",
+      "no_lane_left_in_write_mode_after_any_pass",
+      "no_writes_outside_target_window",
+      "clean_clarification_behavior_on_ambiguous_speech",
+      "stable_latest_apple_speech_transcription_under_push_to_talk_conditions"
+    ]
+  },
+  "explicit_prohibitions": [
+    "do_not_patch_dp_files",
+    "do_not_use_legacy_apple_speech_apis",
+    "do_not_use_SFSpeechRecognizer",
+    "do_not_use_cloud_stt",
+    "do_not_use_wifi_or_bluetooth_for_critical_control",
+    "do_not_guess_missing_targets",
+    "do_not_auto_replay",
+    "do_not_auto_execute_stale_commands",
+    "do_not_claim_undo_if_no_undo_anchor_exists"
+  ],
+  "deferred_after_mvp_b": [
+    "full_duplex_interaction",
+    "wake_word",
+    "richer_recommendation_engine",
+    "more_advanced_eq_semantics",
+    "voice_exposure_of_TRIM_EXISTING_RANGE",
+    "broader_orchestra_wide_grouped_operations",
+    "optional_gui",
+    "optional_alternative_speech_engines_only_after_apple_only_path_is_proven_insufficient"
+  ],
+  "codex_guidance": {
+    "implementation_style": [
+      "prefer_small_testable_modules",
+      "prefer_explicit_schema_validation",
+      "prefer_fail_closed_behavior",
+      "prefer_deterministic_logs",
+      "prefer_dry_run_capability_before_write_execution"
+    ],
+    "non_goals_for_codex": [
+      "do_not_optimize_away_safety_checks",
+      "do_not_replace_explicit_refusal_with_best_effort_guessing",
+      "do_not_add_unapproved_speech_backends_in_mvp_b",
+      "do_not_add_gui_work_before_done_gate_is_met"
+    ]
+  }
+}

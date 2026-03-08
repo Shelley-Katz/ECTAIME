@@ -1,0 +1,8 @@
+# MixCT directive examples (one command per line).
+# Natural language style:
+Bars 1 through 4, first violins, second violins, and high ww to be primary, the rest of the orchestra to be accompaniment.
+Bars 5-8, horns to be secondary, trumpets to be counterpoint, rest of orchestra to be accompaniment.
+Bars 9-12, low brass to be secondary, low ww to be counterpoint, rest of the orchestra to be accompaniment.
+
+# Canonical compact style (recommended for deterministic parsing):
+# bars 13-20: STR_HI=PRIMARY, WW_HI=PRIMARY, HN=SECONDARY, REST=ACCOMPANIMENT

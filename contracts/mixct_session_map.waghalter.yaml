@@ -1,0 +1,188 @@
+version: "1.0"
+name: "MixCT Session Map - Waghalter"
+daw: "Digital Performer"
+inherits: "contracts/mixct_session_map.template.yaml"
+
+defaults:
+  ramp_in_ms: 220
+  control_step_ms: 40
+
+role_db_offsets:
+  PRIMARY: 0.0
+  COUNTERPOINT: -3.0
+  SECONDARY: -6.0
+  ACCOMPANIMENT: -10.0
+
+entity_aliases:
+  first violins: STR_HI
+  second violins: STR_HI
+  violins: STR_HI
+  violas: STR_MID
+  cellos: STR_LO
+  basses: STR_LO
+  high ww: WW_HI
+  ww mid: WW_MID
+  mid ww: WW_MID
+  english horn: WW_MID
+  clarinets: WW_MID
+  low ww: WW_LO
+  low winds: WW_LO
+  horns: HN
+  four horns: HN
+  trumpets: TPT
+  low brass: BR_LO
+  timpani: TIMP
+  percussion: PERC
+  harp: HARP
+
+buses:
+  - id: STR_HI
+    label: "High Strings"
+    mcu_channel: 1
+    cc: 90
+    channel: 16
+    audio_channels: [27]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["high strings", "upper strings"]
+    include_track_patterns: ["^Violin I$", "^Violin II$"]
+
+  - id: STR_MID
+    label: "Mid Strings"
+    mcu_channel: 2
+    cc: 91
+    channel: 16
+    audio_channels: [28]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["mid strings", "violas"]
+    include_track_patterns: ["^Viola$"]
+
+  - id: STR_LO
+    label: "Low Strings"
+    mcu_channel: 3
+    cc: 92
+    channel: 16
+    audio_channels: [29]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["low strings", "cellos and basses"]
+    include_track_patterns: ["^Violoncello$", "^Double bass$"]
+
+  - id: WW_HI
+    label: "High Woodwinds"
+    mcu_channel: 4
+    cc: 93
+    channel: 16
+    audio_channels: [3]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["high ww", "high winds"]
+    include_track_patterns: ["^Piccolo$", "^Flute 1$", "^Flute 2$", "^Oboe 1$", "^Oboe 2$"]
+
+  - id: WW_MID
+    label: "Mid Woodwinds"
+    mcu_channel: 5
+    cc: 94
+    channel: 16
+    audio_channels: [4]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["ww mid", "mid ww", "english horn and clarinets"]
+    include_track_patterns:
+      - "^English Horn$"
+      - "^Clarinet \\(A\\) 1$"
+      - "^Clarinet \\(A\\) 2$"
+
+  - id: WW_LO
+    label: "Low Woodwinds"
+    mcu_channel: 6
+    cc: 95
+    channel: 16
+    audio_channels: [5]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["low ww", "low winds"]
+    include_track_patterns:
+      - "^Bass Clarinet \\(A\\)$"
+      - "^Bassoon 1$"
+      - "^Bassoon 2$"
+      - "^Contrabassoon$"
+
+  - id: HN
+    label: "Horns"
+    mcu_channel: 7
+    cc: 96
+    channel: 16
+    audio_channels: [11]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["horns"]
+    include_track_patterns: ["^Horn \\(F\\) 1$", "^Horn \\(F\\) 2$", "^Horn \\(F\\) 3$", "^Horn \\(F\\) 4$"]
+
+  - id: TPT
+    label: "Trumpets"
+    mcu_channel: 8
+    cc: 97
+    channel: 16
+    audio_channels: [12]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["trumpets", "high brass"]
+    include_track_patterns: ["^Trumpet \\(A\\) 1$", "^Trumpet \\(A\\) 2$", "^Trumpet \\(A\\) 3$"]
+
+  - id: BR_LO
+    label: "Low Brass"
+    mcu_channel: 9
+    cc: 102
+    channel: 16
+    audio_channels: [13]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["low brass"]
+    include_track_patterns: ["^Trombone 1$", "^Trombone 2$", "^Trombone 3$", "^Tuba$"]
+
+  - id: TIMP
+    label: "Timpani"
+    mcu_channel: 10
+    cc: 103
+    channel: 16
+    audio_channels: [19]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["timpani"]
+    include_track_patterns: ["^Timpani$"]
+
+  - id: PERC
+    label: "Percussion"
+    mcu_channel: 11
+    cc: 104
+    channel: 16
+    audio_channels: [20]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["percussion"]
+    include_track_patterns: ["^Triangle$", "^Suspended Cymbal$"]
+
+  - id: HARP
+    label: "Harp"
+    mcu_channel: 12
+    cc: 105
+    channel: 16
+    audio_channels: [21]
+    min_db: -18
+    max_db: 6
+    default_db: 0
+    aliases: ["harp"]
+    include_track_patterns: ["^Harp$"]

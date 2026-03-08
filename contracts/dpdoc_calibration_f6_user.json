@@ -1,0 +1,28 @@
+{
+  "code_to_name": {
+    "41": "Short notes - Staccato ff",
+    "43": "Short notes - Staccato - Agile",
+    "45": "Short notes - Staccato - Bold",
+    "46": "Short notes - Stac. short ff"
+  },
+  "guid_to_name": {
+    "a42f18787deb41499d2947889677b983": "Short notes - Staccato ff",
+    "1db6835029bf4f68a79ed3616b48eba8": "Short notes - Staccato - Agile",
+    "fe6f82aff8844b4c9e4151db0158ce61": "Short notes - Staccato - Bold",
+    "80682dc55a004726b7831d5149e762a2": "Short notes - Stac. short ff"
+  },
+  "series_code_to_name": {
+    "200": {
+      "41": "Short notes - Staccato ff",
+      "43": "Short notes - Staccato - Agile",
+      "45": "Short notes - Staccato - Bold",
+      "46": "Short notes - Stac. short ff"
+    },
+    "215": {
+      "4": "Short notes - Detache",
+      "6": "Long notes - Regular vib. - Full range - Normal att.",
+      "12": "Short notes - Staccato short - Agile",
+      "16": "Short notes - Spiccato - Agile"
+    }
+  }
+}
