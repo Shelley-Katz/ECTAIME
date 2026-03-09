@@ -12,10 +12,10 @@
   - Commit only text/markdown/csv metadata (no large media/audio files).
   - Use concise summaries; include absolute paths.
 - Done when:
-  - New files are committed under :
-    1.  (top-level map + key directories + branch/repo status)
-    2.  (what is open/running now: DP project, VEP project, instances, key routing assumptions)
-    3.  (recommended next work targets for tonight, ordered)
+  - New files are committed under `ops/handoffs/`:
+    1. `studio_inventory_refresh.md` (top-level map + key directories + branch/repo status)
+    2. `studio_runtime_snapshot.md` (what is open/running now: DP project, VEP project, instances, key routing assumptions)
+    3. `studio_priority_targets.md` (recommended next work targets for tonight, ordered)
   - Relay message sent to laptop with commit hash and 5-line summary.
 - Notes:
   - This is foundational context for cross-machine execution sequencing.
