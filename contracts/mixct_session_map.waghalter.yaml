@@ -40,6 +40,9 @@ buses:
     label: "High Strings"
     mcu_channel: 1
     cc: 90
+    eq_low_cc: 20
+    eq_presence_cc: 21
+    eq_air_cc: 22
     channel: 16
     audio_channels: [27]
     min_db: -18
@@ -52,6 +55,9 @@ buses:
     label: "Mid Strings"
     mcu_channel: 2
     cc: 91
+    eq_low_cc: 23
+    eq_presence_cc: 24
+    eq_air_cc: 25
     channel: 16
     audio_channels: [28]
     min_db: -18
@@ -64,6 +70,9 @@ buses:
     label: "Low Strings"
     mcu_channel: 3
     cc: 92
+    eq_low_cc: 26
+    eq_presence_cc: 27
+    eq_air_cc: 28
     channel: 16
     audio_channels: [29]
     min_db: -18
@@ -76,6 +85,9 @@ buses:
     label: "High Woodwinds"
     mcu_channel: 4
     cc: 93
+    eq_low_cc: 29
+    eq_presence_cc: 30
+    eq_air_cc: 31
     channel: 16
     audio_channels: [3]
     min_db: -18
@@ -88,6 +100,9 @@ buses:
     label: "Mid Woodwinds"
     mcu_channel: 5
     cc: 94
+    eq_low_cc: 32
+    eq_presence_cc: 33
+    eq_air_cc: 34
     channel: 16
     audio_channels: [4]
     min_db: -18
@@ -103,6 +118,9 @@ buses:
     label: "Low Woodwinds"
     mcu_channel: 6
     cc: 95
+    eq_low_cc: 35
+    eq_presence_cc: 36
+    eq_air_cc: 37
     channel: 16
     audio_channels: [5]
     min_db: -18
@@ -119,6 +137,9 @@ buses:
     label: "Horns"
     mcu_channel: 7
     cc: 96
+    eq_low_cc: 38
+    eq_presence_cc: 39
+    eq_air_cc: 40
     channel: 16
     audio_channels: [11]
     min_db: -18
@@ -131,6 +152,9 @@ buses:
     label: "Trumpets"
     mcu_channel: 8
     cc: 97
+    eq_low_cc: 41
+    eq_presence_cc: 42
+    eq_air_cc: 43
     channel: 16
     audio_channels: [12]
     min_db: -18
@@ -143,6 +167,9 @@ buses:
     label: "Low Brass"
     mcu_channel: 9
     cc: 102
+    eq_low_cc: 44
+    eq_presence_cc: 45
+    eq_air_cc: 46
     channel: 16
     audio_channels: [13]
     min_db: -18
@@ -155,6 +182,9 @@ buses:
     label: "Timpani"
     mcu_channel: 10
     cc: 103
+    eq_low_cc: 47
+    eq_presence_cc: 48
+    eq_air_cc: 49
     channel: 16
     audio_channels: [19]
     min_db: -18
@@ -167,6 +197,9 @@ buses:
     label: "Percussion"
     mcu_channel: 11
     cc: 104
+    eq_low_cc: 50
+    eq_presence_cc: 51
+    eq_air_cc: 52
     channel: 16
     audio_channels: [20]
     min_db: -18
@@ -179,6 +212,9 @@ buses:
     label: "Harp"
     mcu_channel: 12
     cc: 105
+    eq_low_cc: 53
+    eq_presence_cc: 54
+    eq_air_cc: 55
     channel: 16
     audio_channels: [21]
     min_db: -18

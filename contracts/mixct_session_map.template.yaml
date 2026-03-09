@@ -51,6 +51,19 @@ buses:
   - id: STR_HI
     label: "High Strings"
     cc: 90
+    # Optional EQ macro lanes for MixCT EQ writes (CC protocol).
+    # If omitted, EQ commands for this bus are fail-closed.
+    eq_low_cc: 20
+    eq_presence_cc: 21
+    eq_air_cc: 22
+    # Optional per-lane MCU channels. If omitted, MixCT will fall back to CC protocol
+    # when an EQ command is requested.
+    # eq_low_mcu_channel: 1
+    # eq_presence_mcu_channel: 1
+    # eq_air_mcu_channel: 1
+    # Optional EQ clamp range (defaults: -4..+4 dB).
+    # eq_min_db: -4
+    # eq_max_db: 4
     channel: 16
     min_db: -18
     max_db: 6

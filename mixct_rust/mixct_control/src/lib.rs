@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
-use mixct_core::{clamp_db, enforce_slew, PassPlan};
+use mixct_core::{clamp_db, enforce_slew, LaneKind, PassPlan};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -135,8 +135,14 @@ pub fn execute_pass_with_scales<B: ControlBackend + ?Sized>(
         for (idx, lane) in plan.target_lanes.iter().enumerate() {
             let target_name = format!("{}::{:?}", lane.canonical_name, lane.lane);
             let scale = target_scales
-                .and_then(|m| m.get(&lane.canonical_name).copied())
-                .unwrap_or(1.0);
+                .and_then(|m| {
+                    if matches!(lane.lane, LaneKind::Volume) {
+                        m.get(&lane.canonical_name).copied()
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(1.0_f32);
             let mut v = point.value * scale;
             let clamped = clamp_db(v, min_db, max_db);
             if (clamped - v).abs() > f32::EPSILON {

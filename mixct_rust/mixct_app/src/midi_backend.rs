@@ -100,15 +100,26 @@ impl MidiBackend {
     }
 
     fn resolve_target(&self, target: &str) -> Result<&MidiTargetSpec> {
-        let (target_id, _lane) = target
-            .split_once("::")
-            .ok_or_else(|| anyhow!("invalid_target_format:{target}"))?;
-        let spec = self
-            .targets
-            .get(target_id)
-            .ok_or_else(|| anyhow!("unknown_target:{target_id}"))?;
-        Ok(spec)
+        resolve_target_spec(&self.targets, target)
     }
+}
+
+fn resolve_target_spec<'a>(
+    targets: &'a HashMap<String, MidiTargetSpec>,
+    target: &str,
+) -> Result<&'a MidiTargetSpec> {
+    if let Some(spec) = targets.get(target) {
+        return Ok(spec);
+    }
+    let (target_id, lane) = target
+        .split_once("::")
+        .ok_or_else(|| anyhow!("invalid_target_format:{target}"))?;
+    if lane != "Volume" {
+        return Err(anyhow!("unknown_target_lane_mapping:{target}"));
+    }
+    targets
+        .get(target_id)
+        .ok_or_else(|| anyhow!("unknown_target:{target_id}"))
 }
 
 pub fn list_output_ports() -> Result<Vec<String>> {
@@ -358,4 +369,47 @@ fn select_port_index(out: &MidiOutput, hint: Option<&str>) -> Result<usize> {
     }
 
     Ok(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn spec(cc: u8) -> MidiTargetSpec {
+        MidiTargetSpec {
+            channel: 16,
+            cc,
+            mcu_channel: Some(1),
+            min_db: -18.0,
+            max_db: 6.0,
+        }
+    }
+
+    #[test]
+    fn resolve_prefers_exact_lane_key() {
+        let mut map = HashMap::new();
+        map.insert("STR_HI".to_string(), spec(90));
+        map.insert("STR_HI::EqPresenceGain".to_string(), spec(110));
+        let got = resolve_target_spec(&map, "STR_HI::EqPresenceGain").unwrap();
+        assert_eq!(got.cc, 110);
+    }
+
+    #[test]
+    fn resolve_volume_falls_back_to_bus_key() {
+        let mut map = HashMap::new();
+        map.insert("STR_HI".to_string(), spec(90));
+        let got = resolve_target_spec(&map, "STR_HI::Volume").unwrap();
+        assert_eq!(got.cc, 90);
+    }
+
+    #[test]
+    fn resolve_non_volume_without_lane_map_fails_closed() {
+        let mut map = HashMap::new();
+        map.insert("STR_HI".to_string(), spec(90));
+        let err = resolve_target_spec(&map, "STR_HI::EqAirGain")
+            .err()
+            .unwrap()
+            .to_string();
+        assert!(err.contains("unknown_target_lane_mapping"));
+    }
 }

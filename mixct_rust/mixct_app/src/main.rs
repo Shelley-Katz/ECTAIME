@@ -30,10 +30,11 @@ use mixct_intent::parse_utterance;
 use mixct_restore::{capture_undo_anchor, restore_from_anchor, UndoExecutor};
 use mixct_sync::{evaluate_sync, SyncInputs};
 use serde::{Deserialize, Serialize};
-use speech_apple_bridge::{MockAppleSpeech, SpeechBackend};
+use speech_apple_bridge::{CommandAppleSpeech, SpeechBackend};
 use speech_fallback_local::{transcribe_with_local_fallback, FallbackConfig};
 use std::collections::HashMap;
 use std::fs;
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::Duration;
@@ -533,6 +534,66 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         auto_stop_after_write: bool,
     },
+    VoiceExecute {
+        #[arg(long)]
+        spec: PathBuf,
+        #[arg(long)]
+        session_map: Option<PathBuf>,
+        #[arg(long)]
+        audit_dir: PathBuf,
+        #[arg(long, value_enum, default_value_t = BackendMode::Midi)]
+        backend: BackendMode,
+        #[arg(long, value_enum, default_value_t = WriteProtocolArg::Mcu)]
+        write_protocol: WriteProtocolArg,
+        #[arg(long)]
+        midi_out: Option<String>,
+        #[arg(long)]
+        feedback_in: Option<String>,
+        #[arg(long, default_value_t = 0)]
+        feedback_sec: u64,
+        #[arg(long)]
+        response_calibration: Option<PathBuf>,
+        #[arg(long, default_value_t = false)]
+        no_response_calibration: bool,
+        #[arg(long)]
+        audio_device: Option<String>,
+        #[arg(long, default_value_t = 6)]
+        audio_verify_sec: u64,
+        #[arg(long, default_value_t = 100)]
+        audio_verify_window_ms: u64,
+        #[arg(long, default_value_t = 20)]
+        audio_verify_hop_ms: u64,
+        #[arg(long, default_value_t = 1)]
+        audio_verify_calibrate_sec: u64,
+        #[arg(long, default_value_t = false)]
+        no_audio_verify: bool,
+        #[arg(long)]
+        undo_primary_cc: Option<u8>,
+        #[arg(long)]
+        undo_fallback_cc: Option<u8>,
+        #[arg(long, default_value_t = 16)]
+        undo_channel: u8,
+        #[arg(long, default_value_t = 1.0)]
+        depth: f32,
+        #[arg(long, default_value_t = 2400)]
+        gesture_ms: u64,
+        #[arg(long)]
+        command_id: Option<String>,
+        #[arg(long)]
+        captured_at: Option<String>,
+        #[arg(long, default_value_t = 120)]
+        max_command_age_sec: u64,
+        #[arg(long, default_value_t = false)]
+        dry_run: bool,
+        #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+        typed_fallback: bool,
+    },
+    VoiceTranscribe {
+        #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+        typed_fallback: bool,
+        #[arg(long)]
+        out: Option<PathBuf>,
+    },
     Restore {
         #[arg(long)]
         spec: PathBuf,
@@ -582,6 +643,16 @@ struct SessionBus {
     min_db: f32,
     #[serde(default = "default_bus_max_db")]
     max_db: f32,
+    eq_low_cc: Option<u8>,
+    eq_presence_cc: Option<u8>,
+    eq_air_cc: Option<u8>,
+    eq_low_mcu_channel: Option<u8>,
+    eq_presence_mcu_channel: Option<u8>,
+    eq_air_mcu_channel: Option<u8>,
+    #[serde(default = "default_eq_min_db")]
+    eq_min_db: f32,
+    #[serde(default = "default_eq_max_db")]
+    eq_max_db: f32,
 }
 
 #[derive(Debug, Deserialize)]
@@ -621,6 +692,14 @@ fn default_bus_min_db() -> f32 {
 
 fn default_bus_max_db() -> f32 {
     6.0
+}
+
+fn default_eq_min_db() -> f32 {
+    -4.0
+}
+
+fn default_eq_max_db() -> f32 {
+    4.0
 }
 
 fn main() -> Result<()> {
@@ -1320,6 +1399,97 @@ fn main() -> Result<()> {
             auto_play_before_write,
             auto_stop_after_write,
         ),
+        Commands::VoiceExecute {
+            spec,
+            session_map,
+            audit_dir,
+            backend,
+            write_protocol,
+            midi_out,
+            feedback_in,
+            feedback_sec,
+            response_calibration,
+            no_response_calibration,
+            audio_device,
+            audio_verify_sec,
+            audio_verify_window_ms,
+            audio_verify_hop_ms,
+            audio_verify_calibrate_sec,
+            no_audio_verify,
+            undo_primary_cc,
+            undo_fallback_cc,
+            undo_channel,
+            depth,
+            gesture_ms,
+            command_id,
+            captured_at,
+            max_command_age_sec,
+            dry_run,
+            typed_fallback,
+        } => {
+            let command = transcribe_command_from_voice(typed_fallback)?;
+            println!("voice_command: {}", command);
+            run_execute(
+                &spec,
+                &command,
+                depth,
+                gesture_ms,
+                backend,
+                write_protocol,
+                midi_out.as_deref(),
+                feedback_in.as_deref(),
+                feedback_sec,
+                response_calibration.as_deref(),
+                no_response_calibration,
+                audio_device.as_deref(),
+                audio_verify_sec,
+                audio_verify_window_ms,
+                audio_verify_hop_ms,
+                audio_verify_calibrate_sec,
+                no_audio_verify,
+                undo_primary_cc,
+                undo_fallback_cc,
+                undo_channel,
+                session_map.as_deref(),
+                &audit_dir,
+                command_id,
+                captured_at,
+                max_command_age_sec,
+                dry_run,
+                34,
+                24.0,
+                2,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                120.0,
+                4,
+                4,
+                480,
+                3600.0,
+                70,
+                40,
+                false,
+                false,
+                false,
+            )
+        }
+        Commands::VoiceTranscribe {
+            typed_fallback,
+            out,
+        } => {
+            let text = transcribe_command_from_voice(typed_fallback)?;
+            println!("voice_transcript: {text}");
+            if let Some(path) = out {
+                fs::write(path, format!("{text}\n"))?;
+            }
+            Ok(())
+        }
         Commands::Restore {
             spec,
             command_id,
@@ -1759,12 +1929,17 @@ fn run_execute(
     let session_map = load_session_map(session_map_path)?;
     let aliases = build_aliases(&session_map);
 
-    let stt = MockAppleSpeech;
-    let transcript = stt.transcribe_push_to_talk(None)?;
-    info!(
-        "stt_backend={} stt_confidence={}",
-        transcript.backend, transcript.confidence
-    );
+    if let Ok(stt) = CommandAppleSpeech::from_env() {
+        match stt.transcribe_push_to_talk(None) {
+            Ok(transcript) => info!(
+                "stt_backend={} stt_confidence={}",
+                transcript.backend, transcript.confidence
+            ),
+            Err(e) => warn!("stt_primary_unavailable={e}"),
+        }
+    } else {
+        warn!("stt_primary_not_configured (set MIXCT_APPLE_STT_CMD)");
+    }
 
     let mut intent = parse_utterance(command, &aliases);
 
@@ -1773,6 +1948,7 @@ fn run_execute(
             enabled: true,
             feature_flag: "stt.local_fallback.enabled".to_string(),
             engine: "mlx_whisper_local_only".to_string(),
+            command: std::env::var("MIXCT_LOCAL_STT_CMD").ok(),
         };
         match transcribe_with_local_fallback(None, &cfg) {
             Ok(t) => {
@@ -2008,10 +2184,31 @@ fn run_execute(
         BackendMode::Mock => Box::new(MockBackend::default()),
         BackendMode::Midi => {
             let target_specs = build_midi_target_specs(&session_map);
-            let proto = match write_protocol {
+            let mut proto = match write_protocol {
                 WriteProtocolArg::Cc => WriteProtocol::CcLearn,
                 WriteProtocolArg::Mcu => WriteProtocol::McuFader,
             };
+            if matches!(proto, WriteProtocol::McuFader) {
+                let missing_mcu_map = plan.target_lanes.iter().any(|t| {
+                    let lane_key = format!("{}::{:?}", t.canonical_name, t.lane);
+                    if let Some(spec) = target_specs.get(&lane_key) {
+                        spec.mcu_channel.is_none()
+                    } else if matches!(t.lane, LaneKind::Volume) {
+                        target_specs
+                            .get(&t.canonical_name)
+                            .map(|spec| spec.mcu_channel.is_none())
+                            .unwrap_or(true)
+                    } else {
+                        true
+                    }
+                });
+                if missing_mcu_map {
+                    warn!(
+                        "mcu_mapping_missing_for_some_targets_falling_back_to_cc protocol=cc"
+                    );
+                    proto = WriteProtocol::CcLearn;
+                }
+            }
             let undo_primary = undo_primary_cc.map(|cc| UndoTrigger {
                 channel: undo_channel,
                 cc,
@@ -2047,6 +2244,15 @@ fn run_execute(
     }
 
     let apply_rest_accompaniment = wants_rest_accompaniment(command);
+    let eq_only = plan
+        .target_lanes
+        .iter()
+        .all(|t| !matches!(t.lane, LaneKind::Volume));
+    let (min_db, max_db, max_slew_step) = if eq_only {
+        (-4.0_f32, 4.0_f32, 1.5_f32)
+    } else {
+        (-6.0_f32, 6.0_f32, 3.0_f32)
+    };
     let report = if dry_run {
         None
     } else if apply_rest_accompaniment {
@@ -2055,18 +2261,18 @@ fn run_execute(
             &mut *backend,
             &plan,
             &rest_targets,
-            -12.0,
-            6.0,
-            3.0,
+            min_db,
+            max_db,
+            max_slew_step,
             response_scales.as_ref(),
         )?)
     } else {
         Some(execute_pass_with_scales(
             &mut *backend,
             &plan,
-            -6.0,
-            6.0,
-            3.0,
+            min_db,
+            max_db,
+            max_slew_step,
             response_scales.as_ref(),
         )?)
     };
@@ -2581,6 +2787,65 @@ fn resolve_response_calibration_path(
     None
 }
 
+fn transcribe_command_from_voice(typed_fallback: bool) -> Result<String> {
+    let tts = ConsoleTts;
+    tts.speak("Listening for your command.")?;
+
+    if let Ok(stt) = CommandAppleSpeech::from_env() {
+        match stt.transcribe_push_to_talk(None) {
+            Ok(t) => {
+                let text = t.text.trim().to_string();
+                if !text.is_empty() {
+                    info!(
+                        "voice_primary_ok backend={} confidence={:.2}",
+                        t.backend, t.confidence
+                    );
+                    return Ok(text);
+                }
+            }
+            Err(e) => warn!("voice_primary_failed={e}"),
+        }
+    } else {
+        warn!("voice_primary_not_configured (set MIXCT_APPLE_STT_CMD)");
+    }
+
+    let cfg = FallbackConfig {
+        enabled: true,
+        feature_flag: "stt.local_fallback.enabled".to_string(),
+        engine: "mlx_whisper_local_only".to_string(),
+        command: std::env::var("MIXCT_LOCAL_STT_CMD").ok(),
+    };
+    match transcribe_with_local_fallback(None, &cfg) {
+        Ok(t) => {
+            let text = t.text.trim().to_string();
+            if !text.is_empty() {
+                info!(
+                    "voice_fallback_ok backend={} confidence={:.2}",
+                    t.backend, t.confidence
+                );
+                return Ok(text);
+            }
+        }
+        Err(e) => warn!("voice_fallback_failed={e}"),
+    }
+
+    if typed_fallback {
+        print!("voice unavailable; type command> ");
+        let _ = io::stdout().flush();
+        let mut line = String::new();
+        io::stdin()
+            .read_line(&mut line)
+            .with_context(|| "failed reading typed fallback")?;
+        let text = line.trim().to_string();
+        if text.is_empty() {
+            return Err(anyhow!("typed_fallback_empty"));
+        }
+        return Ok(text);
+    }
+
+    Err(anyhow!("voice_transcription_unavailable"))
+}
+
 fn execute_rest_aware_pass(
     backend: &mut dyn ControlBackend,
     plan: &PassPlan,
@@ -2617,8 +2882,14 @@ fn execute_rest_aware_pass(
             };
 
             let scale = target_scales
-                .and_then(|m| m.get(&lane.canonical_name).copied())
-                .unwrap_or(1.0);
+                .and_then(|m| {
+                    if matches!(lane.lane, LaneKind::Volume) {
+                        m.get(&lane.canonical_name).copied()
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(1.0_f32);
             let mut v = source_point.value * scale;
             let clamped = clamp_db(v, min_db, max_db);
             if (clamped - v).abs() > f32::EPSILON {
@@ -2724,6 +2995,49 @@ fn build_midi_target_specs(session_map: &Option<SessionMap>) -> HashMap<String, 
                         max_db: bus.max_db,
                     },
                 );
+                specs.insert(
+                    format!("{}::{:?}", bus.id, LaneKind::Volume),
+                    MidiTargetSpec {
+                        channel: bus.channel,
+                        cc,
+                        mcu_channel: bus.mcu_channel,
+                        min_db: bus.min_db,
+                        max_db: bus.max_db,
+                    },
+                );
+            }
+
+            let mut add_eq_lane = |lane: LaneKind, cc: Option<u8>, mcu_ch: Option<u8>| {
+                if let Some(eq_cc) = cc {
+                    specs.insert(
+                        format!("{}::{:?}", bus.id, lane),
+                        MidiTargetSpec {
+                            channel: bus.channel,
+                            cc: eq_cc,
+                            mcu_channel: mcu_ch.or(bus.mcu_channel),
+                            min_db: bus.eq_min_db,
+                            max_db: bus.eq_max_db,
+                        },
+                    );
+                }
+            };
+            add_eq_lane(
+                LaneKind::EqLowGain,
+                bus.eq_low_cc,
+                bus.eq_low_mcu_channel,
+            );
+            add_eq_lane(
+                LaneKind::EqPresenceGain,
+                bus.eq_presence_cc,
+                bus.eq_presence_mcu_channel,
+            );
+            add_eq_lane(
+                LaneKind::EqAirGain,
+                bus.eq_air_cc,
+                bus.eq_air_mcu_channel,
+            );
+            if bus.eq_low_cc.is_none() && bus.eq_presence_cc.is_none() && bus.eq_air_cc.is_none() {
+                info!("eq_mapping_missing_for_bus={} (volume-only)", bus.id);
             }
         }
     }
