@@ -68,7 +68,7 @@ emit_alert() {
   local say_enabled="$1"
   printf '\a'
   if [[ "$say_enabled" == "1" ]] && command -v say >/dev/null 2>&1; then
-    say "Ops relay message"
+    say "Ops relay message" >/dev/null 2>&1 || true
   fi
 }
 
